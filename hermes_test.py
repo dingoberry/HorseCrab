@@ -40,7 +40,10 @@ def output_data(name, content):
 
 def transform_fragment(fragment):
     match = re.search(r'country=(?P<country>\w+)', fragment)
-    return fragment.replace(f'country={match.group('country')}', f'country={COUNTRY}') if match else fragment
+    if match:
+        return fragment.replace(f'country={match.group('country')}', f'country={COUNTRY}')
+    else:
+        return fragment
 
 
 def main():
@@ -87,8 +90,10 @@ def main():
                 category = None
 
                 for match in matches:
-                    page_size = match.group('page_size') if match.group('page_size') is not None else page_size
-                    category = match.group('category') if match.group('category') is not None else category
+                    if match.group('page_size') is not None:
+                        page_size = match.group('page_size')
+                    if match.group('category') is not None:
+                        category = match.group('category')
 
                 request_url = f'{prefix_list}{quote(fragment, safe='=/')}/&locale={LOCALE}&category={category.upper()}&sort=relevance&pagesize={page_size}'
                 print(f'Request:{request_url}')
