@@ -17,22 +17,22 @@ HOST_DATA = 'https://bck.hermes.cn'
 COUNTRY = 'jp'
 LOCALE = 'jp_ja'
 
-error_output = lambda rsp: print(f'''A
-Status Code: {rsp.status_code}
+error_output = lambda rsp: print('''A
+Status Code: %d
 Content:
-{rsp.text}
-''')
+%s
+''' % (rsp.status_code, rsp.text))
 
-except_output = lambda e: print(f'''
-{e}
-{sys.exc_info()}
-''')
+except_output = lambda e: print('''
+%s
+%s
+''' % (e.__str__(), sys.exc_info()))
 
 
 def output_data(name, content):
     os.makedirs(HOLD_DATA, exist_ok=True)
     try:
-        with open(os.path.join(HOLD_DATA, f'{name}.txt'), 'wb') as f:
+        with open(os.path.join(HOLD_DATA, name + '.txt'), 'wb') as f:
             f.write(content)
     except Exception as e:
         except_output(e)
@@ -41,7 +41,7 @@ def output_data(name, content):
 def transform_fragment(fragment):
     match = re.search(r'country=(?P<country>\w+)', fragment)
     if match:
-        return fragment.replace(f'country={match.group('country')}', f'country={COUNTRY}')
+        return fragment.replace('country={' + match.group('country') + '}', 'country={' + COUNTRY + '}')
     else:
         return fragment
 
@@ -56,7 +56,7 @@ def main():
         elif arg.startswith('--limit='):
             limit = int(arg.split('=')[1])
 
-    print(f'Conditions -- Interval: {interval}, Limit: {limit}')
+    print('Conditions -- Interval: {' + str(interval) + '}, Limit: {' + str(limit) + '}')
 
     one_session = session()
     one_session.headers.update({
@@ -69,8 +69,8 @@ def main():
     resp = one_session.get(HOST_HOME)
 
     regex = re.compile(r'(fh_view_size=(?P<page_size>\d+))|(fh_location=--/categories<{(?P<category>\w+)})')
-    prefix_list = f'{HOST_DATA}/products?urlParams='
-    prefix_detail = f'{HOST_DATA}/product?locale={LOCALE}&productsku='
+    prefix_list = HOST_DATA + '/products?urlParams='
+    prefix_detail = HOST_DATA + '/product?locale=' + LOCALE + '&productsku='
 
     count = 0
     if resp.status_code == 200:
@@ -84,7 +84,7 @@ def main():
             if matches:
                 print(fragment)
                 fragment = transform_fragment(fragment)
-                print(f'-->{fragment}')
+                print('-->' + fragment)
 
                 page_size = None
                 category = None
@@ -95,18 +95,19 @@ def main():
                     if match.group('category') is not None:
                         category = match.group('category')
 
-                request_url = f'{prefix_list}{quote(fragment, safe='=/')}/&locale={LOCALE}&category={category.upper()}&sort=relevance&pagesize={page_size}'
-                print(f'Request:{request_url}')
+                request_url = (prefix_list + quote(fragment, safe='=/')
+                               + '/&locale=' + LOCALE + '&category=' + category.upper() + '&sort=relevance&pagesize=' + page_size)
+                print('Request:', request_url)
                 resp = one_session.get(request_url)
                 if resp.status_code == 200:
                     output_data(category, resp.content)
                     time.sleep(interval)
                     for item in json.loads(resp.content)['products']['items']:
-                        request_url = f'{prefix_detail}{item['sku']}'
-                        print(f'Request:{request_url}')
+                        request_url = prefix_detail + item['sku']
+                        print('Request:', request_url)
                         resp = one_session.get(request_url)
                         if resp.status_code == 200:
-                            output_data(f'{category}_{item['sku']}', resp.content)
+                            output_data(category + '_' + item['sku'], resp.content)
                             count += 1
                             if count >= limit:
                                 exit(0)
