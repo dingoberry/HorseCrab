@@ -9,15 +9,15 @@ from lxml import etree
 from requests import session
 
 HOLD_DATA = 'data_hold'
-HOST_HOME = 'https://www.hermes.cn'
-HOST_DATA = 'https://bck.hermes.cn'
+HOST_HOME = 'https://www.hermes.com/jp/ja'
+HOST_DATA = 'https://bck.hermes.com'
 # COUNTRY = 'cn'
 # LOCALE = 'cn_zh'
 
 COUNTRY = 'jp'
 LOCALE = 'jp_ja'
 
-error_output = lambda rsp: print('''A
+error_output = lambda rsp: print('''
 Status Code: %d
 Content:
 %s
@@ -67,6 +67,8 @@ def main():
     })
 
     resp = one_session.get(HOST_HOME)
+    print(one_session.cookies)
+    print(resp.cookies)
 
     regex = re.compile(r'(fh_view_size=(?P<page_size>\d+))|(fh_location=--/categories<{(?P<category>\w+)})')
     prefix_list = HOST_DATA + '/products?urlParams='
@@ -99,6 +101,8 @@ def main():
                                + '/&locale=' + LOCALE + '&category=' + category.upper() + '&sort=relevance&pagesize=' + page_size)
                 print('Request:', request_url)
                 resp = one_session.get(request_url)
+                print(one_session.cookies)
+                print(resp.cookies)
                 if resp.status_code == 200:
                     output_data(category, resp.content)
                     time.sleep(interval)
@@ -106,6 +110,8 @@ def main():
                         request_url = prefix_detail + item['sku']
                         print('Request:', request_url)
                         resp = one_session.get(request_url)
+                        print(one_session.cookies)
+                        print(resp.cookies)
                         if resp.status_code == 200:
                             output_data(category + '_' + item['sku'], resp.content)
                             count += 1
